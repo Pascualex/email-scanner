@@ -17,11 +17,11 @@ docx_final_name = None
 
 users = []
 
-name = None
-lastname = None
-dni = None
-email = None
-occupation = None
+name = ''
+lastname = ''
+entity = ''
+email = ''
+occupation = ''
 
 
 def read_pdf():
@@ -30,9 +30,6 @@ def read_pdf():
         for i in range(doc.pageCount):
             p = doc.loadPage(i)
             text = p.getText()
-
-            print('\n=======================> Página', i, '\n')
-            print(text)
 
             for line in text.splitlines():
                 parts = re.compile('[ ]*:[ ]*').split(line)
@@ -51,7 +48,7 @@ def read_pdf():
 
 
 def process_field(field, content):
-    global name, lastname, dni, email, occupation
+    global name, lastname, entity, email, occupation
     if field == 'De':
         store_fields()
         reset_fields()
@@ -59,8 +56,8 @@ def process_field(field, content):
         name = content
     elif field == 'Apellidos':
         lastname = content
-    elif field == 'DNI':
-        dni = content
+    elif field == 'Entidad/Organización/Ayuntamiento':
+        entity = content
     elif field == 'Correo electrónico':
         email = content
     elif field == 'Puesto de trabajo':
@@ -68,21 +65,21 @@ def process_field(field, content):
 
 
 def reset_fields():
-    global name, lastname, dni, email, occupation
-    name = None
-    lastname = None
-    dni = None
-    email = None
-    occupation = None
+    global name, lastname, entity, email, occupation
+    name = ''
+    lastname = ''
+    entity = ''
+    email = ''
+    occupation = ''
 
 
 def store_fields():
-    if name is None or lastname is None or dni is None or email is None or occupation is None:
+    if name == '' and lastname == '' and entity == '' and email == '' and occupation == '':
         return
     users.append({
         'name': name, 
         'lastname': lastname,
-        'dni': dni, 
+        'entity': entity, 
         'email': email,
         'occupation': occupation
     })
@@ -100,10 +97,10 @@ def write_txt():
         txt_final_name = txt_name + '.txt'
         
     file = open(txt_final_name, 'w')
-    file.write('nombre|apellidos|dni|correo|puesto\n')
+    file.write('nombre|apellidos|entidad|correo|puesto\n')
 
     for user in users:
-        file.write(user['name'] + '|' + user['lastname'] + '|' + user['dni'] + '|' + user['email'] + '|' + user['occupation'] + '\n')
+        file.write(user['name'] + '|' + user['lastname'] + '|' + user['entity'] + '|' + user['email'] + '|' + user['occupation'] + '\n')
 
     file.close()
 
@@ -137,7 +134,7 @@ def write_word():
     cells[2].text = 'APELLIDOS'
     cells[2].paragraphs[0].runs[0].font.bold = True
     cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    cells[3].text = 'NIF'
+    cells[3].text = 'ENTIDAD'
     cells[3].paragraphs[0].runs[0].font.bold = True
     cells[3].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
     cells[4].text = 'CORREO'
@@ -153,13 +150,13 @@ def write_word():
         cells[0].text = str(position)
         cells[1].text = user['name']
         cells[2].text = user['lastname']
-        cells[3].text = user['dni']
+        cells[3].text = user['entity']
         cells[4].text = user['email']
         cells[5].text = user['occupation']
         
         position += 1
 
-    widths = (Cm(0.85), Cm(3.25), Cm(4.39), Cm(2.25), Cm(5.25), Cm(9))
+    widths = (Cm(0.85), Cm(3.25), Cm(4.39), Cm(5), Cm(5), Cm(5))
     for row in table.rows:
         for idx, width in enumerate(widths):
             row.cells[idx].width = width
