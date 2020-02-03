@@ -3,17 +3,13 @@ import os
 import ctypes
 import fitz
 from io import StringIO
-from docx import Document
-from docx.shared import Pt
-from docx.shared import Cm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.section import WD_ORIENT
+import xlsxwriter
 
 
 txt_name = 'usuarios'
 txt_final_name = None
-docx_name = 'tabla_usuarios'
-docx_final_name = None
+excel_name = 'tabla_usuarios'
+excel_final_name = None
 
 users = []
 
@@ -105,77 +101,50 @@ def write_txt():
     file.close()
 
 
-def write_word():
-    global docx_final_name
+def write_excel():
+    global excel_final_name
 
-    document = Document()
-    style = document.styles['Normal']
-    font = style.font
-    font.name = 'Calibri'
-    font.size = Pt(11)
-
-    section = document.sections[-1]
-    new_width = section.page_height
-    new_height = section.page_width
-    section.orientation = WD_ORIENT.LANDSCAPE
-    section.page_width = new_width
-    section.page_height = new_height
-
-    table = document.add_table(rows=1, cols=6)
-    table.style = 'Table Grid'
-
-    cells = table.rows[0].cells
-    cells[0].text = 'Nº'
-    cells[0].paragraphs[0].runs[0].font.bold = True
-    cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    cells[1].text = 'NOMBRE'
-    cells[1].paragraphs[0].runs[0].font.bold = True
-    cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    cells[2].text = 'APELLIDOS'
-    cells[2].paragraphs[0].runs[0].font.bold = True
-    cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    cells[3].text = 'ENTIDAD'
-    cells[3].paragraphs[0].runs[0].font.bold = True
-    cells[3].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    cells[4].text = 'CORREO'
-    cells[4].paragraphs[0].runs[0].font.bold = True
-    cells[4].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-    cells[5].text = 'OCUPACIÓN ACTUAL'
-    cells[5].paragraphs[0].runs[0].font.bold = True
-    cells[5].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if os.path.isfile(excel_name + '.xlsx') is True:
+        file_id = 1
+        while os.path.isfile(excel_name + '_' + str(file_id) + '.xlsx') is True:
+            file_id += 1
+        excel_final_name = excel_name + '_' + str(file_id) + '.xlsx'
+    else:
+        excel_final_name = excel_name + '.xlsx'
     
+    workbook = xlsxwriter.Workbook(excel_final_name)
+    worksheet = workbook.add_worksheet(excel_name)
+
+    worksheet.add_table(0, 0, len(users), 4, {'name': excel_name})
+
+    worksheet.write(0, 0, 'Nombre')
+    worksheet.set_column(0, 0, 20)
+    worksheet.write(0, 1, 'Apellidos')
+    worksheet.set_column(1, 1, 30)
+    worksheet.write(0, 2, 'Entidad')
+    worksheet.set_column(2, 2, 60)
+    worksheet.write(0, 3, 'Correo Electrónico')
+    worksheet.set_column(3, 3, 60)
+    worksheet.write(0, 4, 'Ocupación')
+    worksheet.set_column(4, 4, 80)
+
     position = 1
     for user in users:
-        cells = table.add_row().cells
-        cells[0].text = str(position)
-        cells[1].text = user['name']
-        cells[2].text = user['lastname']
-        cells[3].text = user['entity']
-        cells[4].text = user['email']
-        cells[5].text = user['occupation']
+        worksheet.write(position, 0, user['name'])
+        worksheet.write(position, 1, user['lastname'])
+        worksheet.write(position, 2, user['entity'])
+        worksheet.write(position, 3, user['email'])
+        worksheet.write(position, 4, user['occupation'])
         
         position += 1
 
-    widths = (Cm(0.85), Cm(3.25), Cm(4.39), Cm(5), Cm(5), Cm(5))
-    for row in table.rows:
-        for idx, width in enumerate(widths):
-            row.cells[idx].width = width
-
-    if os.path.isfile(docx_name + '.docx') is True:
-        file_id = 1
-        while os.path.isfile(docx_name + '_' + str(file_id) + '.docx') is True:
-            file_id += 1
-        docx_final_name = docx_name + '_' + str(file_id) + '.docx'
-    else:
-        docx_final_name = docx_name + '.docx'
-    
-    document.save(docx_final_name)
+    workbook.close()
 
 
 if __name__ == '__main__':
     if read_pdf():
         write_txt()
-        write_word()
+        write_excel()
         title = 'Éxito'
-        message = 'Se han procesado correctamente ' + str(len(users)) + ' usuarios. Los resultados se han almacenado en ' + txt_final_name + ' y ' + docx_final_name + '.'
+        message = 'Se han procesado correctamente ' + str(len(users)) + ' usuarios. Los resultados se han almacenado en ' + txt_final_name + ' y ' + excel_final_name + '.'
         ctypes.windll.user32.MessageBoxW(0, message, title, 0x40000)
