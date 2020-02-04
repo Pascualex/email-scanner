@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['procesador_inscripciones.py'],
-             pathex=['D:\\Cosas raras\\Trabajos mamá\\Registro automático'],
+             pathex=['D:\\Coding\\Proyectos\\email-scanner'],
              binaries=[],
              datas=[],
              hiddenimports=[],
