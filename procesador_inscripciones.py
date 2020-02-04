@@ -12,73 +12,107 @@ excel_name = 'tabla_usuarios'
 excel_final_name = None
 
 users = []
-
-name = ''
-lastname = ''
-entity = ''
-email = ''
-occupation = ''
+fields = [
+    {
+        'pdf_name': 'DNI',
+        'txt_name': 'dni',
+        'excel_name': 'DNI',
+        'column_width': 20,
+        'content': ''
+    },
+    {
+        'pdf_name': 'Nombre',
+        'txt_name': 'nombre',
+        'excel_name': 'Nombre',
+        'column_width': 20,
+        'content': ''
+    },
+    {
+        'pdf_name': 'Apellidos',
+        'txt_name': 'apellidos',
+        'excel_name': 'Apellidos',
+        'column_width': 30,
+        'content': ''
+    },
+    {
+        'pdf_name': 'Correo electrónico',
+        'txt_name': 'correo',
+        'excel_name': 'Correo electrónico',
+        'column_width': 60,
+        'content': ''
+    },
+    {
+        'pdf_name': 'Teléfono',
+        'txt_name': 'telefono',
+        'excel_name': 'Teléfono',
+        'column_width': 20,
+        'content': ''
+    },
+    {
+        'pdf_name': 'Entidad/Organización/Ayuntamiento',
+        'txt_name': 'entidad',
+        'excel_name': 'Entidad',
+        'column_width': 50,
+        'content': ''
+    },
+    {
+        'pdf_name': 'Puesto de trabajo',
+        'txt_name': 'puesto',
+        'excel_name': 'Puesto de trabajo',
+        'column_width': 80,
+        'content': ''
+    }
+]
 
 
 def read_pdf():
-    try:
-        doc = fitz.open('correos.pdf')
-        for i in range(doc.pageCount):
-            p = doc.loadPage(i)
-            text = p.getText()
+    doc = fitz.open('correos.pdf')
+    for i in range(doc.pageCount):
+        p = doc.loadPage(i)
+        text = p.getText()
 
-            for line in text.splitlines():
-                parts = re.compile('[ ]*:[ ]*').split(line)
-                if len(parts) == 2:
-                    process_field(parts[0], parts[1])
+        for line in text.splitlines():
+            parts = re.compile('[ ]*:[ ]*').split(line)
+            if len(parts) == 2:
+                process_field(parts[0], parts[1])
 
-        store_fields()
+    store_fields()
 
-        return True
-    except:        
-        title = 'Error'
-        message = 'No se ha encontrado el fichero correos.pdf. Por favor, colóquelo en la misma carpeta que este ejecutable.'
-        ctypes.windll.user32.MessageBoxW(0, message, title, 0x40000)
-
-        return False
+    return True
 
 
-def process_field(field, content):
-    global name, lastname, entity, email, occupation
-    if field == 'De':
+def process_field(field_name, content):
+    global fields
+    if field_name == 'De':
         store_fields()
         reset_fields()
-    elif field == 'Nombre':
-        name = content
-    elif field == 'Apellidos':
-        lastname = content
-    elif field == 'Entidad/Organización/Ayuntamiento':
-        entity = content
-    elif field == 'Correo electrónico':
-        email = content
-    elif field == 'Puesto de trabajo':
-        occupation = content
+    else:
+        for field in fields:
+            if field_name == field['pdf_name']:
+                field['content'] = content
+                break
 
 
 def reset_fields():
-    global name, lastname, entity, email, occupation
-    name = ''
-    lastname = ''
-    entity = ''
-    email = ''
-    occupation = ''
+    global fields
+    for field in fields:
+        field['content'] = ''
 
 
 def store_fields():
-    if name == '' and lastname == '' and entity == '' and email == '' and occupation == '':
+    empty = True
+    for field in fields:
+        if field['content'] != '':
+            empty = False
+            break
+
+    if empty:
         return
-    users.append({
-        'name': name, 
-        'lastname': lastname,
-        'entity': entity, 
-        'email': email,
-        'occupation': occupation
-    })
+
+    user = []
+    for field in fields:
+        user.append(field['content'])
+    users.append(user)
 
 
 def write_txt():
@@ -91,12 +125,21 @@ def write_txt():
         txt_final_name = txt_name + '_' + str(file_id) + '.txt'
     else:
         txt_final_name = txt_name + '.txt'
-        
+
     file = open(txt_final_name, 'w')
-    file.write('nombre|apellidos|entidad|correo|puesto\n')
+
+    for i, field in enumerate(fields):
+        if i < (len(fields) - 1):
+            file.write(field['txt_name'] + '|')
+        else:
+            file.write(field['txt_name'] + '\n')
 
     for user in users:
-        file.write(user['name'] + '|' + user['lastname'] + '|' + user['entity'] + '|' + user['email'] + '|' + user['occupation'] + '\n')
+        for i, field in enumerate(user):
+            if i < (len(user) - 1):
+                file.write(field + '|')
+            else:
+                file.write(field + '\n')
 
     file.close()
 
@@ -115,28 +158,15 @@ def write_excel():
     workbook = xlsxwriter.Workbook(excel_final_name)
     worksheet = workbook.add_worksheet(excel_name)
 
-    worksheet.add_table(0, 0, len(users), 4, {'name': excel_name})
+    worksheet.add_table(0, 0, len(users), len(fields) - 1, {'name': excel_name})
 
-    worksheet.write(0, 0, 'Nombre')
-    worksheet.set_column(0, 0, 20)
-    worksheet.write(0, 1, 'Apellidos')
-    worksheet.set_column(1, 1, 30)
-    worksheet.write(0, 2, 'Entidad')
-    worksheet.set_column(2, 2, 60)
-    worksheet.write(0, 3, 'Correo Electrónico')
-    worksheet.set_column(3, 3, 60)
-    worksheet.write(0, 4, 'Ocupación')
-    worksheet.set_column(4, 4, 80)
+    for i, field in enumerate(fields):
+        worksheet.write(0, i, field['excel_name'])
+        worksheet.set_column(i, i, field['column_width'])
 
-    position = 1
-    for user in users:
-        worksheet.write(position, 0, user['name'])
-        worksheet.write(position, 1, user['lastname'])
-        worksheet.write(position, 2, user['entity'])
-        worksheet.write(position, 3, user['email'])
-        worksheet.write(position, 4, user['occupation'])
-        
-        position += 1
+    for i, user in enumerate(users):
+        for j, field in enumerate(user):
+            worksheet.write(i + 1, j, field)
 
     workbook.close()
 
