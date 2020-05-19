@@ -18,63 +18,80 @@ fields = [
         'txt_name': 'dni',
         'excel_name': 'DNI',
         'column_width': 20,
-        'content': ''
+        'line_split': False
     },
     {
         'pdf_name': 'Nombre',
         'txt_name': 'nombre',
         'excel_name': 'Nombre',
         'column_width': 20,
-        'content': ''
+        'line_split': False
     },
     {
         'pdf_name': 'Apellidos',
         'txt_name': 'apellidos',
         'excel_name': 'Apellidos',
         'column_width': 30,
-        'content': ''
+        'line_split': False
     },
     {
         'pdf_name': 'Correo electrónico',
         'txt_name': 'correo',
         'excel_name': 'Correo electrónico',
         'column_width': 60,
-        'content': ''
+        'line_split': False
     },
     {
         'pdf_name': 'Teléfono',
         'txt_name': 'telefono',
         'excel_name': 'Teléfono',
         'column_width': 20,
-        'content': ''
+        'line_split': False
     },
     {
         'pdf_name': 'Entidad/Organización/Ayuntamiento',
         'txt_name': 'entidad',
         'excel_name': 'Entidad',
         'column_width': 50,
-        'content': ''
+        'line_split': False
     },
     {
         'pdf_name': 'Puesto de trabajo',
         'txt_name': 'puesto',
         'excel_name': 'Puesto de trabajo',
         'column_width': 80,
-        'content': ''
+        'line_split': False
+    },
+    {
+        'pdf_name': 'Fecha',
+        'txt_name': 'fecha',
+        'excel_name': 'Fecha',
+        'column_width': 40,
+        'line_split': True
     }
 ]
 
 
 def read_pdf():
     doc = fitz.open('correos.pdf')
+    reset_fields()
+
     for i in range(doc.pageCount):
         p = doc.loadPage(i)
         text = p.getText()
 
+        multi_line_field = None
         for line in text.splitlines():
-            parts = re.compile('[ ]*:[ ]*').split(line)
-            if len(parts) == 2:
-                process_field(parts[0], parts[1])
+            if multi_line_field is not None:
+                for field in fields:
+                    if multi_line_field == field['pdf_name']:
+                        field['content'] = line
+                        break
+                multi_line_field = None
+            else:
+                parts = re.compile('[ ]*:[ ]*').split(line)
+                if len(parts) == 2:
+                    multi_line_field = process_field(parts[0], parts[1])
 
     store_fields()
 
@@ -89,8 +106,11 @@ def process_field(field_name, content):
     else:
         for field in fields:
             if field_name == field['pdf_name']:
-                field['content'] = content
-                break
+                if field['line_split']:
+                    return field['pdf_name']
+                else:
+                    field['content'] = content
+                    return
 
 
 def reset_fields():
