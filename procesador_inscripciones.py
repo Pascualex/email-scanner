@@ -4,6 +4,7 @@ import ctypes
 import fitz
 from io import StringIO
 import xlsxwriter
+import codecs
 
 
 txt_name = 'usuarios'
@@ -146,7 +147,7 @@ def write_txt():
     else:
         txt_final_name = txt_name + '.txt'
 
-    file = open(txt_final_name, 'w')
+    file = codecs.open(txt_final_name, 'w', 'utf-8')
 
     for i, field in enumerate(fields):
         if i < (len(fields) - 1):
